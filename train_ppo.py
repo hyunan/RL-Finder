@@ -12,8 +12,8 @@ model = PPO(
 )
 
 print('Learning...')
-model.learn(total_timesteps=100)
+model.learn(total_timesteps=100000)
 
 print('Saving...')
-model.save("output/dqn_malmo")
+model.save("output/ppo_malmo")
 print("DONE TRAINING")

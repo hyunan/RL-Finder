@@ -1,9 +1,10 @@
-from stable_baselines3 import DQN
+from stable_baselines3 import DQN, PPO
 from env.malmoenv_wrapper import MalmoEnvWrapper
 import time
 
 env = MalmoEnvWrapper("missions/gold_mission.xml")
-model = DQN.load("output/dqn_malmo", env=env)
+# model = DQN.load("output/dqn_malmo", env=env)
+model = PPO.load("output/ppo_malmo", env=env)
 
 obs = env.reset()
 
@@ -14,6 +15,6 @@ while not done:
     obs, reward, done, info = env.step(action)
     
     print(f"Action taken: {env.action_map[int(action)]}")
-    time.sleep(0.5)
+    time.sleep(1)
 
 print("DONE")

@@ -24,7 +24,7 @@ model = DQN(
 )
 
 print('Learning...')
-model.learn(total_timesteps=5000)
+model.learn(total_timesteps=100000)
 
 print('Saving...')
 model.save("output/dqn_malmo")

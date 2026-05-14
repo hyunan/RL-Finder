@@ -7,12 +7,15 @@ import math
 
 DEBUG = False
 
+DIM = 243
+
 BLOCK_MAP = {
     'bedrock': 0,
     'air': 1,
     'grass': 2,
-    'stone': 3,
-    'gold_block': 4
+    'dirt': 3,
+    'stone': 4,
+    'gold_block': 5
 }
 
 class MalmoEnvWrapper(gym.Env):
@@ -25,8 +28,8 @@ class MalmoEnvWrapper(gym.Env):
         self.action_space = gym.spaces.Discrete(4) # w, a, s, d, turn left, turn right
         self.observation_space = gym.spaces.Box(
             low=0,
-            high=255,
-            shape=(125,),
+            high=len(BLOCK_MAP)-1,
+            shape=(DIM,),
             dtype=np.float32
         )
         self.action_map = {
@@ -38,14 +41,22 @@ class MalmoEnvWrapper(gym.Env):
 
         self.last_action = None
         self.old_grid = None
+        self.prevx = None
+        self.prevz = None
 
     def reset(self):
         _ = self.env.reset()
         _, _, _, info = self.env.step(0)
         if not info:
-            return np.zeros(125, dtype=np.float32)
+            return np.zeros(DIM, dtype=np.float32)
         info_dict = json.loads(info)
         grid = info_dict['grid']
+
+        x, z = info_dict['XPos'], info_dict['ZPos']
+        self.prevx, self.prevz = x, z
+        
+        self.old_grid = grid
+        self.last_action = 0
         encoded = self._process_grid(grid)
         
         return encoded
@@ -55,22 +66,31 @@ class MalmoEnvWrapper(gym.Env):
             print(self.action_map[action])
         _, reward, done, info = self.env.step(action)
         if not info:
-            return np.zeros(125), -0.1, False, {}
+            return np.zeros(DIM), -0.1, False, {}
         info_dict = json.loads(info)
         grid = info_dict['grid']
         x, z = info_dict['XPos'], info_dict['ZPos']
         encoded = self._process_grid(grid)
 
-        if grid != self.old_grid:
-            reward += 0.1
-        if action == self.last_action:
-            reward -= 0.05
-        self.last_action = action
-        reward -= -0.01
+        # if self.old_grid is not None and grid != self.old_grid:
+            # reward += 0.1
+        self.old_grid = grid
 
-        if _gold_adjacent(grid, 2, 2, 2):
-            reward += 10
-            done = True
+        reward -= 0.01
+        if action in [2, 3] and self.last_action in [2, 3]:
+            reward -= 0.01
+        self.last_action = action
+
+        if self.prevx is not None and self.prevz is not None:
+            if math.hypot((self.prevx - x), (self.prevz - z)) < 1:
+                reward -= 0.02
+
+        self.prevx, self.prevz = x, z
+
+        # if _gold_adjacent(grid, 2, 2, 2):
+        #     reward += 10
+        #     done = True
+
 
         return encoded, reward, done, info_dict
 
